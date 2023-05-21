@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using RefactoringChallenge.Entities;
+using RefactoringChallenge.Repositories;
 
 namespace RefactoringChallenge
 {
@@ -26,6 +27,7 @@ namespace RefactoringChallenge
 
             services.AddSingleton(TypeAdapterConfig.GlobalSettings);
             services.AddScoped<IMapper, ServiceMapper>();
+            services.AddScoped<IOrdersRepository, OrdersRepository>();
 
             services.AddControllers();
 

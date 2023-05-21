@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Mapster;
 using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
 using RefactoringChallenge.Entities;
+using RefactoringChallenge.Repositories;
 
 namespace RefactoringChallenge.Controllers
 {
@@ -12,45 +14,43 @@ namespace RefactoringChallenge.Controllers
     [Route("[controller]")]
     public class OrdersController : Controller
     {
-        private readonly NorthwindDbContext _northwindDbContext;
-        private readonly IMapper _mapper;
-
-        public OrdersController(NorthwindDbContext northwindDbContext, IMapper mapper)
+        private readonly IOrdersRepository _ordersRepository;
+         public OrdersController(IOrdersRepository ordersRepository)
         {
-            _northwindDbContext = northwindDbContext;
-            _mapper = mapper;
+            _ordersRepository = ordersRepository;
         }
 
         [HttpGet]
-        public IActionResult Get(int? skip = null, int? take = null)
+        public async Task<string> Get(int? skip = null, int? take = null)
         {
-            var query = _northwindDbContext.Orders;
-            if (skip != null)
+             try
             {
-                query.Skip(skip.Value);
+                var result = await _ordersRepository.GetAsync(skip, take);
+                return result;
             }
-            if (take != null)
+            catch (Exception ex)
             {
-                query.Take(take.Value);
+                return ex.Message;
             }
-            var result = _mapper.From(query).ProjectToType<OrderResponse>().ToList();
-            return Json(result);
+
         }
 
-
         [HttpGet("{orderId}")]
-        public IActionResult GetById([FromRoute] int orderId)
+        public async Task<string> GetById([FromRoute] int orderId)
         {
-            var result = _mapper.From(_northwindDbContext.Orders).ProjectToType<OrderResponse>().FirstOrDefault(o => o.OrderId == orderId);
-
-            if (result == null)
-                return NotFound();
-
-            return Json(result);
+            try
+            {
+                var result = await _ordersRepository.GetByIdAsync(orderId);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                return ex.Message;
+            }
         }
 
         [HttpPost("[action]")]
-        public IActionResult Create(
+        public async Task<string> Create(
             string customerId,
             int? employeeId,
             DateTime? requiredDate,
@@ -65,80 +65,56 @@ namespace RefactoringChallenge.Controllers
             IEnumerable<OrderDetailRequest> orderDetails
             )
         {
-            var newOrderDetails = new List<OrderDetail>();
-            foreach (var orderDetail in orderDetails)
+            try
             {
-                newOrderDetails.Add(new OrderDetail
-                {
-                    ProductId = orderDetail.ProductId,
-                    Discount = orderDetail.Discount,
-                    Quantity = orderDetail.Quantity,
-                    UnitPrice = orderDetail.UnitPrice,
-                });
+                var result = _ordersRepository.CreateAsync(customerId,
+                    employeeId,
+                    requiredDate,
+                    shipVia,
+                    freight,
+                    shipName,
+                    shipAddress,
+                    shipCity,
+                    shipRegion,
+                    shipPostalCode,
+                    shipCountry,
+                    orderDetails);
+                return await result;
+            }
+            catch (Exception ex)
+            {
+                return ex.Message;
             }
 
-            var newOrder = new Order
-            {
-                CustomerId = customerId,
-                EmployeeId = employeeId,
-                OrderDate = DateTime.Now,
-                RequiredDate = requiredDate,
-                ShipVia = shipVia,
-                Freight = freight,
-                ShipName = shipName,
-                ShipAddress = shipAddress,
-                ShipCity = shipCity,
-                ShipRegion = shipRegion,
-                ShipPostalCode = shipPostalCode,
-                ShipCountry = shipCountry,
-                OrderDetails = newOrderDetails,
-            };
-            _northwindDbContext.Orders.Add(newOrder);
-            _northwindDbContext.SaveChanges();
-
-            return Json(newOrder.Adapt<OrderResponse>());
         }
 
         [HttpPost("{orderId}/[action]")]
-        public IActionResult AddProductsToOrder([FromRoute] int orderId, IEnumerable<OrderDetailRequest> orderDetails)
+        public async Task<string> AddProductsToOrder([FromRoute] int orderId, IEnumerable<OrderDetailRequest> orderDetails)
         {
-            var order = _northwindDbContext.Orders.FirstOrDefault(o => o.OrderId == orderId);
-            if (order == null)
-                return NotFound();
-
-            var newOrderDetails = new List<OrderDetail>();
-            foreach (var orderDetail in orderDetails)
+            try
             {
-                newOrderDetails.Add(new OrderDetail
-                {
-                    OrderId = orderId,
-                    ProductId = orderDetail.ProductId,
-                    Discount = orderDetail.Discount,
-                    Quantity = orderDetail.Quantity,
-                    UnitPrice = orderDetail.UnitPrice,
-                });
+                var result = await _ordersRepository.AddProductsToOrderAsync(orderId, orderDetails);
+                return result;
             }
-
-            _northwindDbContext.OrderDetails.AddRange(newOrderDetails);
-            _northwindDbContext.SaveChanges();
-
-            return Json(newOrderDetails.Select(od => od.Adapt<OrderDetailResponse>()));
+            catch (Exception ex)
+            {
+                return ex.Message;
+            }
         }
 
         [HttpPost("{orderId}/[action]")]
-        public IActionResult Delete([FromRoute] int orderId)
+        //public IActionResult Delete([FromRoute] int orderId)
+        public async Task<string> Delete([FromRoute] int orderId)
         {
-            var order = _northwindDbContext.Orders.FirstOrDefault(o => o.OrderId == orderId);
-            if (order == null)
-                return NotFound();
-
-            var orderDetails = _northwindDbContext.OrderDetails.Where(od => od.OrderId == orderId);
-
-            _northwindDbContext.OrderDetails.RemoveRange(orderDetails);
-            _northwindDbContext.Orders.Remove(order);
-            _northwindDbContext.SaveChanges();
-
-            return Ok();
+            try
+            {
+                string result = await _ordersRepository.DeleteAsync(orderId);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                return ex.Message;
+            }
         }
     }
 }

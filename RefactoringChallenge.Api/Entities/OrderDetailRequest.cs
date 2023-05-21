@@ -1,8 +1,7 @@
-﻿namespace RefactoringChallenge.Controllers
+﻿namespace RefactoringChallenge.Entities
 {
-    public class OrderDetailResponse
+    public class OrderDetailRequest
     {
-        public int OrderId { get; set; }
         public int ProductId { get; set; }
         public decimal UnitPrice { get; set; }
         public short Quantity { get; set; }
