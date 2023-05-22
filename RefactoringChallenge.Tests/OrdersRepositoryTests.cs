@@ -25,6 +25,7 @@ namespace RefactoringChallenge.Tests
             private Mock<NorthwindDbContext> _dbContextMock;
             private Mock<IMapper> _mapperMock;
             private OrdersRepository _repository;
+            private object TestDataHelper;
 
             [SetUp]
             public void Setup()
@@ -90,6 +91,38 @@ namespace RefactoringChallenge.Tests
                 Assert.IsInstanceOf<string>(result);
 
             }
+
+            [Test]
+            public async Task AddProductsToOrderAsync_OrderNotFound_ReturnsErrorMessage()
+            {
+                // Arrange
+                var orderId = 1;
+                var orderDetails = new List<OrderDetailRequest>
+            {
+                new OrderDetailRequest
+                {
+                    ProductId = 1,
+                    Discount = (float)0.1m,
+                    Quantity = 5,
+                    UnitPrice = 10.0m
+                }
+            };
+
+                var mockDbContext = new Mock<NorthwindDbContext>();
+                var mockOrderSet = new Mock<DbSet<Order>>();
+                mockDbContext.Setup(c => c.Orders).Returns(mockOrderSet.Object);
+                mockOrderSet.Setup(s => s.FirstOrDefault(o => o.OrderId == orderId)).Returns((Order)null);
+
+                var ordersRepository = new OrdersRepository(mockDbContext.Object, null);
+
+                // Act
+                var result = await ordersRepository.AddProductsToOrderAsync(orderId, orderDetails);
+
+                // Assert
+                Assert.IsNotNull(result);
+                Assert.AreEqual($"Order ID {orderId} is not found.", result);
+            }
+
 
             [Test]
             public async Task CreateAsync_ValidInput_ReturnsSerializedOrderResponse()
